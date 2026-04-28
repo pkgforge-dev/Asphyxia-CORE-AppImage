@@ -39,8 +39,3 @@ awk -F'/' '/Location:/{print $(NF-1); exit}' /tmp/download.log > ~/version
 # save it to /tmp to restore it later
 cp -v ./asphyxia-core /tmp
 
-# add plugins
-git clone --depth 1 https://github.com/asphyxia-core/plugins ./_plugins
-cp -rv ./_plugins/* ./plugins
-rm -rf ./_plugins
-
