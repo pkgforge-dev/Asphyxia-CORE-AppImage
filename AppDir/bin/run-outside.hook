@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# This hack is needed since the app writes to a directory next to the binary
+_dir="$DATADIR"/asphyxia-core-appimage
+mkdir -p "$_dir"/bin
+cd "$_dir"
+
+cp "$APPDIR"/sharun    ./
+cp "$APPDIR"/.env      ./ 2>/dev/null || :
+cp "$APPDIR"/.preload  ./ 2>/dev/null || :
+
+ln -sfn "$APPDIR"/lib     ./lib
+ln -sfn "$APPDIR"/share   ./share
+ln -sfn "$APPDIR"/shared  ./shared
+ln -sfn "$APPDIR"/etc     ./etc 2>/dev/null || :
+
+# workaround uutils bug
+# https://github.com/pkgforge-dev/xenia-canary-AppImage/issues/14
+# this garbage was shipped in ubuntu 25.10 where ln -f does not even work...
+rm -f ./bin/asphyxia-core
+ln -f ./sharun ./bin/asphyxia-core
+
+if [ ! -d ./bin/plugins ]; then
+	>&2 echo "Copying plugins to '$_dir/bin'"
+	cp -r "$APPDIR"/bin/plugins ./bin
+fi
+
+exec ./bin/asphyxia-core "$@"
