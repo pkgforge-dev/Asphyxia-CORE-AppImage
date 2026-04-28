@@ -32,7 +32,9 @@
 #endif
 
 /* Set this per app to the target under $APPDIR for /proc/self/exe redirects */
-#define FIX_PROC_EXE_TARGET_PATH "bin/asphyxia-core"
+#ifndef FIX_PROC_EXE_TARGET_PATH
+#define FIX_PROC_EXE_TARGET_PATH "shared/bin/asphyxia-core"
+#endif
 
 static const char proc_exe_path[] = "/proc/self/exe";
 
@@ -203,16 +205,14 @@ int execve(const char *pathname, char *const argv[], char *const envp[]) {
 		real_execve = resolve_symbol("execve");
 	}
 
-	if (pathname != NULL) {
-		shared = strstr(pathname, "/shared/");
-		if (shared != NULL) {
-			prefix_len = (size_t)(shared - pathname);
-			suffix_len = strlen(shared + 8);
-			if (prefix_len + suffix_len < sizeof(rewritten)) {
-				memcpy(rewritten, pathname, prefix_len);
-				memcpy(rewritten + prefix_len, shared + 8, suffix_len + 1);
-				pathname = rewritten;
-			}
+	shared = strstr(pathname, "/shared/");
+	if (shared != NULL) {
+		prefix_len = (size_t)(shared - pathname);
+		suffix_len = strlen(shared + 8);
+		if (prefix_len + suffix_len < sizeof(rewritten)) {
+			memcpy(rewritten, pathname, prefix_len);
+			memcpy(rewritten + prefix_len, shared + 8, suffix_len + 1);
+			pathname = rewritten;
 		}
 	}
 
