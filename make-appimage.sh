@@ -17,6 +17,11 @@ quick-sharun ./AppDir/bin/*
 # restore the binary as it gets broken by strip
 cp -v /tmp/asphyxia-core ./AppDir/shared/bin
 
+# build hack to fix /proc/self/exe issues
+cc -shared -fPIC -O2 -Wall -Wextra -o ./AppDir/lib/fix-proc-exe.so ./fix-proc-exe.c -ldl
+echo 'fix-proc-exe.so' >> ./AppDir/.preload
+
+
 # Turn AppDir into AppImage
 quick-sharun --make-appimage
 
