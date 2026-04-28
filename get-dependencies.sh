@@ -14,13 +14,23 @@ get-debloated-pkgs --add-common --prefer-nano
 
 # Comment this out if you need an AUR package
 #make-aur-package PACKAGENAME
+echo "Getting binary..."
+echo "---------------------------------------------------------------"
+mkdir -p ./AppDir/bin
+cd ./AppDir/bin
 
-# If the application needs to be manually built that has to be done down here
+case "$ARCH" in
+	x86_64)  farch=x64;;
+	aarch64) farch=arm64;;
+esac
 
-# if you also have to make nightly releases check for DEVEL_RELEASE = 1
-#
-# if [ "${DEVEL_RELEASE-}" = 1 ]; then
-# 	nightly build steps
-# else
-# 	regular build steps
-# fi
+link=https://github.com/asphyxia-core/core/releases/latest/download/asphyxia-core-linux-$farch.zip
+
+if ! wget --retry-connrefused --tries=30 "$link" -O /tmp/temp.zip 2>/tmp/download.log; then
+	cat /tmp/download.log
+	exit 1
+fi
+
+unzip /tmp/temp.zip
+
+awk -F'/' '/Location:/{print $(NF-1); exit}' /tmp/download.log > ~/version
