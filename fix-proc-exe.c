@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 
 #ifdef open64
@@ -62,37 +61,6 @@ static const char *redirect_path(const char *path) {
 
 	target = resolve_target_path();
 	return target != NULL ? target : path;
-}
-
-static const char *resolve_self_exe_path(void) {
-	static char self_exe[PATH_MAX];
-	static int cached;
-	ssize_t len;
-
-	if (cached) {
-		return self_exe[0] != '\0' ? self_exe : NULL;
-	}
-	cached = 1;
-
-	len = syscall(SYS_readlink, proc_exe_path, self_exe, sizeof(self_exe) - 1);
-	if (len < 0) {
-		self_exe[0] = '\0';
-		return NULL;
-	}
-
-	self_exe[len] = '\0';
-	return self_exe;
-}
-
-static int path_is_self_exe(const char *path) {
-	const char *self_exe;
-
-	if (path == NULL) {
-		return 0;
-	}
-
-	self_exe = resolve_self_exe_path();
-	return self_exe != NULL && strcmp(path, self_exe) == 0;
 }
 
 static ssize_t redirect_readlink(const char *path, char *buf, size_t bufsiz) {
@@ -226,15 +194,26 @@ int openat64(int dirfd, const char *pathname, int flags, ...) {
 
 int execve(const char *pathname, char *const argv[], char *const envp[]) {
 	static int (*real_execve)(const char *, char *const[], char *const[]);
-	const char *target;
+	static char rewritten[PATH_MAX];
+	const char *shared;
+	size_t prefix_len;
+	size_t suffix_len;
 
 	if (real_execve == NULL) {
 		real_execve = resolve_symbol("execve");
 	}
 
-	target = resolve_target_path();
-	if (target != NULL && pathname != NULL && (strcmp(pathname, proc_exe_path) == 0 || path_is_self_exe(pathname))) {
-		pathname = target;
+	if (pathname != NULL) {
+		shared = strstr(pathname, "/shared/");
+		if (shared != NULL) {
+			prefix_len = (size_t)(shared - pathname);
+			suffix_len = strlen(shared + 8);
+			if (prefix_len + suffix_len < sizeof(rewritten)) {
+				memcpy(rewritten, pathname, prefix_len);
+				memcpy(rewritten + prefix_len, shared + 8, suffix_len + 1);
+				pathname = rewritten;
+			}
+		}
 	}
 
 	return real_execve(pathname, argv, envp);
