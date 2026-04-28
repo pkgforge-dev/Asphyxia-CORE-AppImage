@@ -33,7 +33,7 @@
 
 /* Set this per app to the target under $APPDIR for /proc/self/exe redirects */
 #ifndef FIX_PROC_EXE_TARGET_PATH
-#define FIX_PROC_EXE_TARGET_PATH "shared/bin/asphyxia-core"
+#define FIX_PROC_EXE_TARGET_PATH "bin/asphyxia-core"
 #endif
 
 static const char proc_exe_path[] = "/proc/self/exe";
@@ -192,6 +192,16 @@ int openat64(int dirfd, const char *pathname, int flags, ...) {
 	}
 
 	return call_openat(real_openat64, dirfd, redirect_path(pathname), flags, mode, supply_mode);
+}
+
+int execve(const char *pathname, char *const argv[], char *const envp[]) {
+	static int (*real_execve)(const char *, char *const[], char *const[]);
+
+	if (real_execve == NULL) {
+		real_execve = resolve_symbol("execve");
+	}
+
+	return real_execve(redirect_path(pathname), argv, envp);
 }
 
 FILE *fopen(const char *pathname, const char *mode) {
