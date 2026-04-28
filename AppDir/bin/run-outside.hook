@@ -28,7 +28,7 @@ if [ ! -d ./bin/plugins ]; then
 	if is_cmd git \
 	  && notify -dq "Do you wish to install a basic set of plugins from '$_plugins_src'?"; then
 		notify 'Downloading plugins, this might take a while...'
-		git clone --depth 1 https://github.com/asphyxia-core/plugins ./__plugins
+		git clone --depth 1 "$_plugins_src" ./__plugins
 		cp -rv ./__plugins/* ./plugins
 		rm -rf ./__plugins
 		notify 'Plugins successfully downloaded!'
